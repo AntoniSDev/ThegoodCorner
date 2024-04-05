@@ -1,39 +1,52 @@
-import { AdCardProps } from "@/components/AdCard";
-import axios from "axios";
+import React from "react";
 import Link from "next/link";
+import { gql, useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+
+const GET_AD_BY_ID = gql`
+  query GetAdById($adId: ID!) {
+    getAdById(id: $adId) {
+      id
+      title
+      description
+      owner
+      price
+      ville
+      imgUrl
+      ownerEmail
+    }
+  }
+`;
 
 const AdDetails = () => {
   const router = useRouter();
-  const [ad, setAd] = useState<AdCardProps>();
-  useEffect(() => {
-    const fetchAd = async () => {
-      const result = await axios.get(
-        "http://localhost:5000/ads/" + router.query.id
-      );
-      console.log(result);
-      setAd(result.data);
-    };
-    fetchAd();
-  }, [router.query.id]);
-  console.log("fetch details from ad " + router.query.id);
+  const { adId } = router.query;
+
+  const { loading, error, data } = useQuery(GET_AD_BY_ID, {
+    variables: { adId },
+  });
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error : {error.message}</p>;
+
+  const ad = data.getAdById;
+
   return (
     <>
-      <h2 className="ad-details-title">{ad?.title}</h2>
+      <h2 className="ad-details-title">{ad.title}</h2>
       <section className="ad-details">
         <div className="ad-details-image-container">
-          <img className="ad-details-image" src={ad?.imgUrl} />
+          <img className="ad-details-image" src={ad.imgUrl} />
         </div>
         <div className="ad-details-info">
-          <div className="ad-details-price">{ad?.price} €</div>
-          <div className="ad-details-description">{ad?.description}</div>
+          <div className="ad-details-price">{ad.price} €</div>
+          <div className="ad-details-description">{ad.description}</div>
           <hr className="separator" />
           <div className="ad-details-owner">
-            Annoncée publiée par <b>Serge</b> (9:32).
+            Annoncée publiée par <b>{ad.owner}</b> (9:32).
           </div>
           <a
-            href="mailto:serge@serge.com"
+            href={`mailto:${ad.ownerEmail}`}
             className="button button-primary link-button"
           >
             <svg
@@ -52,7 +65,7 @@ const AdDetails = () => {
             Envoyer un email
           </a>
           <Link
-            href={`/ad/edit/${ad?.id}`}
+            href={`/ad/edit/${ad.id}`}
             className="button button-primary link-button"
           >
             Modifier
